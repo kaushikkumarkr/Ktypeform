@@ -12,7 +12,7 @@ router = APIRouter()
 @router.get("/", response_model=List[form_schemas.Form])
 def read_forms(
     db: Session = Depends(get_db),
-    current_user: User = Depends(deps.get_current_user),
+    current_user: User = Depends(deps.get_current_user_or_api_key),
     skip: int = 0,
     limit: int = 100,
 ):

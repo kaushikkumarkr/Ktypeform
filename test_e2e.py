@@ -30,6 +30,7 @@ def run_test():
     schema = {
         "fields": [
             {"id": "name", "type": "text", "label": "Full Name", "required": True},
+            {"id": "email", "type": "email", "label": "Email Address", "required": True},
             {"id": "age", "type": "number", "label": "Age", "required": True}
         ]
     }
@@ -47,7 +48,7 @@ def run_test():
     print("   Success.")
 
     print("4. Submitting to Public Endpoint...")
-    answers = {"name": "Test User", "age": 25}
+    answers = {"name": "Test User", "email": "test@example.com", "age": 25}
     resp = requests.post(f"{BASE_URL}/public/{slug}/submit", json={"answers": answers})
     if resp.status_code != 200:
         print(f"Submission Failed: {resp.text}")
@@ -64,7 +65,13 @@ def run_test():
     if agent_data.get("error"):
          print(f"   Agent Returned Error: {agent_data['error']}")
     else:
-         print(f"   Success. Generated Fields: {len(agent_data['schema_json'].get('fields', []))}")
+         # Support both flat fields and pages structure
+         schema = agent_data['schema_json']
+         if 'pages' in schema:
+             total_fields = sum(len(p.get('fields', [])) for p in schema.get('pages', []))
+             print(f"   Success. Generated Pages: {len(schema['pages'])}, Total Fields: {total_fields}")
+         else:
+             print(f"   Success. Generated Fields: {len(schema.get('fields', []))}")
 
     print("\nALL TESTS PASSED.")
 

@@ -16,12 +16,21 @@ class Settings(BaseSettings):
     POSTGRES_PORT: int = 5432
     POSTGRES_DB: str = "smartform"
 
-    # MinIO
+    # MinIO / S3-Compatible Storage
+    MINIO_ENDPOINT: str = "minio:9000"  # For local MinIO, or external S3 endpoint
+    MINIO_SECURE: bool = False  # Set True for HTTPS (Supabase, R2, etc.)
     MINIO_ROOT_USER: str = "minioadmin"
     MINIO_ROOT_PASSWORD: str = "minioadmin"
     
     # n8n
     N8N_HOST: str = "localhost"
+
+    # Email
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USER: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    EMAILS_FROM_EMAIL: str = "noreply@ktypeform.com"
 
     # LLM Keys
     GROQ_API_KEY: Optional[str] = None
@@ -29,6 +38,9 @@ class Settings(BaseSettings):
     HUGGINGFACEHUB_API_TOKEN: Optional[str] = None
     OPENAI_API_KEY: Optional[str] = None
     HUGGINGFACE_API_KEY: Optional[str] = None # Handling possible variant
+
+    # Stripe
+    STRIPE_SECRET_KEY: Optional[str] = None
 
     @computed_field
     @property

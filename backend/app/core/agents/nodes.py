@@ -15,17 +15,29 @@ def generate_schema(state: AgentState) -> AgentState:
     llm = llm_router.get_llm(temp=0.2)
     
     prompt = ChatPromptTemplate.from_messages([
-        ("system", "You are an expert form builder. output JSON only."),
+        ("system", "You are an expert form builder. Output JSON only."),
         ("user", """
-        Create a form schema for: {prompt}
+        Create a multi-step form schema for: {prompt}
         
-        Output format:
+        Output format (use "pages" array for multi-step forms):
         {{
-            "fields": [
-                {{ "id": "field_id", "type": "text|email|number|select", "label": "Label", "required": true, "options": [...] }}
+            "title": "Form Title",
+            "pages": [
+                {{
+                    "id": "page_1",
+                    "title": "Page Title",
+                    "fields": [
+                        {{ "id": "field_id", "type": "text|email|number|select", "label": "Label", "required": true, "options": [...] }}
+                    ]
+                }}
             ]
         }}
-        Ensure IDs are unique and simple (e.g., 'email', 'name', 'qty').
+        
+        Rules:
+        - Use 2-4 pages for typical forms.
+        - Group related fields on the same page.
+        - Field IDs must be unique across all pages.
+        - Keep field IDs simple (e.g., 'email', 'name', 'qty').
         """)
     ])
     

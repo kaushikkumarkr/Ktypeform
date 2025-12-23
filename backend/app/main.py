@@ -1,9 +1,16 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.endpoints import forms, submissions, agents, login
+from app.api.endpoints import forms, submissions, agents, login, payments
 from app.core.config import settings
 
+from app.core.db import Base, engine
+# Import all models to ensure they are registered with Base
+from app.models import user, form, invite, api_key 
+
 app = FastAPI(title="Smart Form Automation API", version="0.1.0")
+
+# Create tables (Simplistic migration for MVP side-project)
+Base.metadata.create_all(bind=engine)
 
 # Configure CORS
 app.add_middleware(
@@ -28,5 +35,6 @@ app.include_router(forms.router, prefix=f"{settings.API_V1_STR}/forms", tags=["f
 app.include_router(submissions.router, prefix=f"{settings.API_V1_STR}", tags=["submissions"])
 app.include_router(agents.router, prefix=f"{settings.API_V1_STR}/agents", tags=["agents"])
 app.include_router(login.router, prefix=f"{settings.API_V1_STR}", tags=["login"])
+app.include_router(payments.router, prefix=f"{settings.API_V1_STR}/payments", tags=["payments"])
 print(f"DEBUG: Forms routes: {len(forms.router.routes)}")
 print(f"DEBUG: Agents routes: {len(agents.router.routes)}")

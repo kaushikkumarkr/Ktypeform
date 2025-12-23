@@ -7,20 +7,24 @@ from weasyprint import HTML
 from botocore.client import Config
 from app.core.config import settings
 
-# MinIO Config
-MINIO_URL = os.getenv("MINIO_URL", "http://minio:9000")
-MINIO_ACCESS_KEY = os.getenv("MINIO_ROOT_USER", "minioadmin")
-MINIO_SECRET_KEY = os.getenv("MINIO_ROOT_PASSWORD", "minioadmin")
+# S3-Compatible Storage Config (MinIO, Supabase, Cloudflare R2, AWS S3)
+MINIO_ENDPOINT = settings.MINIO_ENDPOINT
+MINIO_SECURE = settings.MINIO_SECURE
+MINIO_ACCESS_KEY = settings.MINIO_ROOT_USER
+MINIO_SECRET_KEY = settings.MINIO_ROOT_PASSWORD
 BUCKET_NAME = "submissions"
+
+# Build endpoint URL
+ENDPOINT_URL = f"{'https' if MINIO_SECURE else 'http'}://{MINIO_ENDPOINT}"
 
 # Initialize S3 Client
 s3_client = boto3.client(
     "s3",
-    endpoint_url=MINIO_URL,
+    endpoint_url=ENDPOINT_URL,
     aws_access_key_id=MINIO_ACCESS_KEY,
     aws_secret_access_key=MINIO_SECRET_KEY,
     config=Config(signature_version="s3v4"),
-    region_name="us-east-1" # MinIO default
+    region_name="us-east-1"
 )
 
 # Ensure bucket exists

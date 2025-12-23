@@ -1,5 +1,5 @@
 from typing import List
-from fastapi import APIRouter, Depends, HTTPException, Body
+from fastapi import APIRouter, Depends, HTTPException, Body, BackgroundTasks
 from sqlalchemy.orm import Session
 from app.api import deps
 from app.models.form import Form, FormVersion, Submission
@@ -11,6 +11,7 @@ from app.core.logic.rules import evaluate_rules
 from app.core.logic.formulas import process_formulas
 from app.core.pdf_service import pdf_service
 from app.core.webhook_service import webhook_service
+from app.core.email_service import email_service
 
 router = APIRouter()
 
@@ -44,6 +45,7 @@ def get_public_form_schema(
 def create_public_submission(
     slug: str,
     submission_in: sub_schemas.PublicSubmissionCreate,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """
@@ -130,9 +132,28 @@ def create_public_submission(
         }
         webhook_service.trigger_webhook(version.webhook_url, payload)
     
+    # 9. Email Notification (Sprint 1)
+    # Find field of type 'email'
+    email_field_id = None
+    if version.schema_json and "fields" in version.schema_json:
+        for field in version.schema_json["fields"]:
+            if field.get("type") == "email":
+                email_field_id = field.get("id")
+                break
+    
+    if email_field_id and pdf_url:
+        recipient_email = input_data.get(email_field_id)
+        if recipient_email:
+             background_tasks.add_task(
+                 email_service.send_submission_email,
+                 to_email=recipient_email,
+                 pdf_url=pdf_url,
+                 form_title=form.title
+             )
+    
     return {"id": submission.id, "message": "Submission received", "pdf_url": pdf_url}
 
-@router.get("/{form_id}/submissions", response_model=List[sub_schemas.Submission])
+@router.get("/forms/{form_id}/submissions", response_model=List[sub_schemas.Submission])
 def read_submissions(
     form_id: int,
     db: Session = Depends(get_db),
@@ -150,3 +171,59 @@ def read_submissions(
         
     submissions = db.query(Submission).filter(Submission.form_id == form_id).offset(skip).limit(limit).all()
     return submissions
+
+@router.get("/forms/{form_id}/stats", response_model=dict)
+def get_form_stats(
+    form_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(deps.get_current_user)
+):
+    """
+    Analytics Endpoint: Get submission counts and stats.
+    """
+    # Verify ownership
+    form = db.query(Form).filter(Form.id == form_id, Form.org_id == current_user.org_id).first()
+    if not form:
+        raise HTTPException(status_code=404, detail="Form not found")
+        
+    # Total Submissions
+    total_count = db.query(Submission).filter(Submission.form_id == form_id).count()
+    
+    # Recent Submissions (Last 5)
+    recent = db.query(Submission).filter(Submission.form_id == form_id).order_by(Submission.created_at.desc()).limit(5).all()
+    
+    # Daily Counts (Last 7 Days)
+    # Using SQL for aggregation might be cleaner, but simple Python loop is fine for MVP small scale.
+    # Group by date strings.
+    from sqlalchemy import func
+    from datetime import datetime, timedelta
+    
+    seven_days_ago = datetime.utcnow() - timedelta(days=7)
+    
+    daily_stats = db.query(
+        func.date(Submission.created_at).label('date'),
+        func.count(Submission.id).label('count')
+    ).filter(
+        Submission.form_id == form_id,
+        Submission.created_at >= seven_days_ago
+    ).group_by(
+        func.date(Submission.created_at)
+    ).order_by(
+        func.date(Submission.created_at)
+    ).all()
+    
+    # Format for chart
+    chart_data = [{"date": str(stat.date), "count": stat.count} for stat in daily_stats]
+    
+    return {
+        "total_submissions": total_count,
+        "recent_submissions": [
+            {
+                "id": s.id,
+                "created_at": s.created_at,
+                "data": s.raw_data,
+                "pdf_url": s.pdf_url
+            } for s in recent
+        ],
+        "daily_counts": chart_data
+    }
