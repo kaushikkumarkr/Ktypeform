@@ -2,11 +2,10 @@ services:
   - type: web
     name: ktypeform-backend
     runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    rootDir: backend
     envVars:
       - key: SECRET_KEY
-        sync: false
+        generateValue: true
       - key: POSTGRES_USER
         sync: false
       - key: POSTGRES_PASSWORD
@@ -19,6 +18,8 @@ services:
         sync: false
       - key: MINIO_ENDPOINT
         sync: false
+      - key: MINIO_SECURE
+        value: "true"
       - key: MINIO_ROOT_USER
         sync: false
       - key: MINIO_ROOT_PASSWORD
