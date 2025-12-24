@@ -1,170 +1,117 @@
-# 🚀 KTypeform Deployment Guide (Free Tier)
+# 🚀 Free Stack Deployment Guide
 
-This guide walks you through deploying KTypeform using **100% free tier** services.
+Deploy KTypeform with **100% free services** - no credit card required!
 
-## Services Used
+## Stack Overview
 
-| Component | Service | Free Tier Limits |
-|-----------|---------|------------------|
-| Backend | [Render](https://render.com) | 750 hrs/month |
-| Frontend | [Vercel](https://vercel.com) | Unlimited |
-| Database | [Neon](https://neon.tech) | 0.5 GB, 1 project |
-| Storage | [Supabase](https://supabase.com) | 1 GB storage |
-
----
-
-## Step 1: Set Up Neon PostgreSQL
-
-1. Go to [neon.tech](https://neon.tech) and create account
-2. Create new project → Choose region → Create
-3. Copy connection string from dashboard:
-   ```
-   postgresql://user:password@host.neon.tech/neondb
-   ```
-4. Extract these values:
-   - `POSTGRES_USER`: user
-   - `POSTGRES_PASSWORD`: password
-   - `POSTGRES_SERVER`: host.neon.tech
-   - `POSTGRES_DB`: neondb
+| Component | Service | Free Limit |
+|-----------|---------|------------|
+| Frontend | **Vercel** | Unlimited |
+| Backend | **Render** | 750 hrs/month |
+| Database | **Neon** | 0.5 GB PostgreSQL |
+| Storage | **Cloudflare R2** | 10 GB + free egress |
 
 ---
 
-## Step 2: Set Up Supabase Storage
+## Step 1: Neon PostgreSQL
 
-1. Go to [supabase.com](https://supabase.com) and create account
-2. Create new project
-3. Go to **Storage** → Create bucket named `submissions`
-4. Set bucket to **Public**
-5. Go to **Settings** → **API** and copy:
-   - **Project URL**: `https://xxxxx.supabase.co`
-   - **Service Role Key** (under Service Role)
-
-For S3 config:
-- `MINIO_ENDPOINT`: `xxxxx.supabase.co/storage/v1/s3`
-- `MINIO_SECURE`: `true`
-- `MINIO_ROOT_USER`: Your project reference (from URL)
-- `MINIO_ROOT_PASSWORD`: Service Role Key
+1. Go to [neon.tech](https://neon.tech) → Sign up
+2. Create project → Copy connection details:
+   - `POSTGRES_USER`
+   - `POSTGRES_PASSWORD`  
+   - `POSTGRES_SERVER` (e.g., `ep-xxx.us-east-2.aws.neon.tech`)
+   - `POSTGRES_DB` (usually `neondb`)
 
 ---
 
-## Step 3: Deploy Backend to Render
+## Step 2: Cloudflare R2
 
-### 3.1 Push to GitHub
-```bash
-cd /path/to/Ktypeform
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin https://github.com/YOUR_USERNAME/ktypeform.git
-git push -u origin main
-```
+1. Go to [dash.cloudflare.com](https://dash.cloudflare.com) → Sign up
+2. Go to **R2 Object Storage** → **Create bucket**
+3. Name: `submissions`
+4. Go to **Manage R2 API Tokens** → Create token with read/write
+5. Copy:
+   - **Account ID** (from URL or overview)
+   - **Access Key ID**
+   - **Secret Access Key**
+   - **Endpoint**: `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`
 
-### 3.2 Create Render Service
-1. Go to [render.com](https://render.com) → New → Web Service
-2. Connect GitHub repo
-3. Configure:
-   - **Name**: `ktypeform-backend`
+---
+
+## Step 3: Render Backend
+
+1. Go to [render.com](https://render.com) → Sign up with GitHub
+2. **New** → **Web Service** → Connect `kaushikkumarkr/Ktypeform`
+3. Settings:
    - **Root Directory**: `backend`
-   - **Environment**: `Docker`
+   - **Environment**: Docker
    - **Plan**: Free
 
-### 3.3 Set Environment Variables
-In Render dashboard, add these env vars:
+4. Add Environment Variables:
 
-| Key | Value |
-|-----|-------|
-| `SECRET_KEY` | Generate: `openssl rand -hex 32` |
+| Variable | Value |
+|----------|-------|
+| `SECRET_KEY` | `openssl rand -hex 32` (run locally) |
 | `POSTGRES_USER` | From Neon |
 | `POSTGRES_PASSWORD` | From Neon |
-| `POSTGRES_SERVER` | From Neon (e.g., `ep-xxx.neon.tech`) |
+| `POSTGRES_SERVER` | From Neon |
 | `POSTGRES_PORT` | `5432` |
-| `POSTGRES_DB` | From Neon (e.g., `neondb`) |
-| `MINIO_ENDPOINT` | From Supabase |
+| `POSTGRES_DB` | From Neon |
+| `MINIO_ENDPOINT` | `<ACCOUNT_ID>.r2.cloudflarestorage.com` |
 | `MINIO_SECURE` | `true` |
-| `MINIO_ROOT_USER` | Supabase project ref |
-| `MINIO_ROOT_PASSWORD` | Supabase service role key |
-| `GROQ_API_KEY` | Your Groq API key |
+| `MINIO_ROOT_USER` | R2 Access Key ID |
+| `MINIO_ROOT_PASSWORD` | R2 Secret Access Key |
+| `GROQ_API_KEY` | Your Groq key |
 
-### 3.4 Deploy
-Click **Create Web Service** → Wait for build (~5-10 min)
-
-Note your backend URL: `https://ktypeform-backend.onrender.com`
+5. Click **Create Web Service** → Wait for deploy (~5-10 min)
+6. Copy your backend URL: `https://xxx.onrender.com`
 
 ---
 
-## Step 4: Deploy Frontend to Vercel
+## Step 4: Vercel Frontend
 
-### 4.1 Create Vercel Project
-1. Go to [vercel.com](https://vercel.com) → New Project
-2. Import from GitHub
-3. Select **frontend** directory as root
-4. Configure:
-   - **Framework Preset**: Next.js
+1. Go to [vercel.com](https://vercel.com) → Sign up with GitHub
+2. **New Project** → Import `kaushikkumarkr/Ktypeform`
+3. Settings:
    - **Root Directory**: `frontend`
+   - **Framework**: Next.js
 
-### 4.2 Set Environment Variables
-| Key | Value |
-|-----|-------|
-| `NEXT_PUBLIC_API_URL` | `https://ktypeform-backend.onrender.com` |
+4. Add Environment Variable:
 
-### 4.3 Deploy
-Click **Deploy** → Wait for build (~2-3 min)
+| Variable | Value |
+|----------|-------|
+| `NEXT_PUBLIC_API_URL` | Your Render backend URL |
 
-Your app is now live! 🎉
+5. Click **Deploy** → Wait (~2-3 min)
 
 ---
 
-## Step 5: Initialize Database
-
-The database tables are created automatically on first backend startup.
-
-To create the initial admin user, use the API:
+## Step 5: Create Admin User
 
 ```bash
-curl -X POST https://ktypeform-backend.onrender.com/api/v1/signup \
+curl -X POST https://YOUR-BACKEND.onrender.com/api/v1/signup \
   -H "Content-Type: application/json" \
-  -d '{"email": "admin@example.com", "password": "your-secure-password"}'
+  -d '{"email": "admin@yourcompany.com", "password": "your-secure-password"}'
 ```
+
+---
+
+## ✅ Done!
+
+Your app is live at your Vercel URL!
+
+| Service | Monthly Cost |
+|---------|-------------|
+| Vercel | $0 |
+| Render | $0 |
+| Neon | $0 |
+| Cloudflare R2 | $0 |
+| **Total** | **$0** |
 
 ---
 
 ## Troubleshooting
 
-### Backend won't start
-- Check Render logs for errors
-- Verify all environment variables are set
-- Ensure Neon database is accessible
-
-### Storage uploads fail
-- Verify Supabase bucket is public
-- Check MINIO_* env vars are correct
-- Confirm service role key (not anon key)
-
-### Frontend can't reach backend
-- Check NEXT_PUBLIC_API_URL is correct
-- Ensure backend is deployed and running
-- Check CORS settings
-
----
-
-## Production Checklist
-
-- [ ] Change `SECRET_KEY` to random value
-- [ ] Set up custom domain (optional)
-- [ ] Configure email (SMTP settings)
-- [ ] Add Stripe key for payments (optional)
-- [ ] Enable monitoring/logging
-
----
-
-## Cost Summary
-
-| Service | Monthly Cost |
-|---------|-------------|
-| Render (Backend) | $0 |
-| Vercel (Frontend) | $0 |
-| Neon (Database) | $0 |
-| Supabase (Storage) | $0 |
-| **Total** | **$0** |
-
-> ⚠️ Free tiers have limits. For production traffic, consider paid plans.
+**Backend won't start**: Check Render logs, verify all env vars
+**PDF upload fails**: Verify R2 bucket exists and API token has write access
+**Frontend 401 errors**: Check `NEXT_PUBLIC_API_URL` is correct
